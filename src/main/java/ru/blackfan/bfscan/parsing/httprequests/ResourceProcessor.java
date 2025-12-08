@@ -154,6 +154,9 @@ public class ResourceProcessor {
                     case "Configure" -> {
                         return processJettyXml(name, document);
                     }
+                    case "beans" -> {
+                        return processSpringBeansXml(name, document);
+                    }
                     default -> {
                     }
                 }
@@ -611,5 +614,117 @@ public class ResourceProcessor {
         normalizedPath = normalizedPath.replaceAll("\\$(\\w+)<[^>]+>", "{$1}");
         
         return normalizedPath;
+    }
+
+    private List<MultiHTTPRequest> processSpringBeansXml(String name, Document document) {
+        List<MultiHTTPRequest> multiRequests = new ArrayList<>();
+        try {
+            Map<String, String> beanIdToClass = new HashMap<>();
+            
+            NodeList allBeans = document.getElementsByTagName("bean");
+            for (int i = 0; i < allBeans.getLength(); i++) {
+                Element bean = (Element) allBeans.item(i);
+                String beanId = bean.getAttribute("id");
+                String beanName = bean.getAttribute("name");
+                String beanClass = bean.getAttribute("class");
+                
+                String beanIdentifier = beanId.isEmpty() ? beanName : beanId;
+                if (!beanIdentifier.isEmpty()) {
+                    beanIdToClass.put(beanIdentifier, beanClass != null ? beanClass : "");
+                }
+            }
+            
+            for (int i = 0; i < allBeans.getLength(); i++) {
+                Element bean = (Element) allBeans.item(i);
+                String beanClass = bean.getAttribute("class");
+                
+                if ("org.springframework.web.servlet.handler.SimpleUrlHandlerMapping".equals(beanClass)) {
+                    NodeList properties = bean.getElementsByTagName("property");
+                    for (int j = 0; j < properties.getLength(); j++) {
+                        Element property = (Element) properties.item(j);
+                        String propertyName = property.getAttribute("name");
+                        
+                        if ("mappings".equals(propertyName)) {
+                            NodeList valueElements = property.getElementsByTagName("value");
+                            if (valueElements.getLength() > 0) {
+                                String mappingsText = valueElements.item(0).getTextContent();
+                                parseSimpleUrlHandlerMappings(mappingsText, beanIdToClass, multiRequests, name);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            parseBeanNameUrlHandlerMappings(beanIdToClass, multiRequests, name);
+        } catch (Exception ex) {
+            logger.error("Error parsing requests from Spring beans XML", ex);
+        }
+        return multiRequests;
+    }
+
+    private void parseSimpleUrlHandlerMappings(String mappingsText, Map<String, String> beanIdToClass, 
+                                                List<MultiHTTPRequest> multiRequests, String fileName) {
+        if (mappingsText == null || mappingsText.trim().isEmpty()) {
+            return;
+        }
+        
+        String[] lines = mappingsText.split("\\r?\\n");
+        for (String line : lines) {
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("#")) {
+                continue;
+            }
+            
+            int equalsIndex = line.indexOf('=');
+            if (equalsIndex > 0) {
+                String path = line.substring(0, equalsIndex).trim();
+                String controllerBeanId = line.substring(equalsIndex + 1).trim();
+                
+                if (!path.isEmpty() && !controllerBeanId.isEmpty()) {
+                    String controllerClass = beanIdToClass.getOrDefault(controllerBeanId, controllerBeanId);
+                    
+                    MultiHTTPRequest springRequest = new MultiHTTPRequest(apiHost, apiBasePath, controllerClass, fileName);
+                    springRequest.addAdditionalInformation("Spring SimpleUrlHandlerMapping");
+                    springRequest.setPath(path, false);
+                    multiRequests.add(springRequest);
+                }
+            }
+        }
+    }
+
+    private void parseBeanNameUrlHandlerMappings(Map<String, String> beanIdToClass, 
+                                                 List<MultiHTTPRequest> multiRequests, String fileName) {
+        for (Map.Entry<String, String> entry : beanIdToClass.entrySet()) {
+            String beanId = entry.getKey();
+            String beanClass = entry.getValue();
+            
+            if (beanId != null) {
+                String[] beanNames = beanId.split(",");
+                List<String> urlPaths = new ArrayList<>();
+                
+                for (String beanName : beanNames) {
+                    beanName = beanName.trim();
+                    if (beanName.startsWith("/")) {
+                        urlPaths.add(beanName);
+                    }
+                }
+                
+                if (!urlPaths.isEmpty()) {
+                    String controllerClass = (beanClass != null && !beanClass.isEmpty()) ? beanClass : beanId;
+                    
+                    if (urlPaths.size() == 1) {
+                        MultiHTTPRequest springRequest = new MultiHTTPRequest(apiHost, apiBasePath, controllerClass, fileName);
+                        springRequest.addAdditionalInformation("Spring BeanNameUrlHandlerMapping");
+                        springRequest.setPath(urlPaths.get(0), false);
+                        multiRequests.add(springRequest);
+                    } else {
+                        MultiHTTPRequest springRequest = new MultiHTTPRequest(apiHost, apiBasePath, controllerClass, fileName);
+                        springRequest.addAdditionalInformation("Spring BeanNameUrlHandlerMapping");
+                        springRequest.setPaths(urlPaths);
+                        multiRequests.add(springRequest);
+                    }
+                }
+            }
+        }
     }
 }

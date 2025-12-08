@@ -296,10 +296,11 @@ public final class Constants {
         public static final String PARAM_MODEL = "Lorg/springframework/web/bind/annotation/ModelAttribute;";
         public static final String PARAM_PATH = "Lorg/springframework/web/bind/annotation/PathVariable;";
         public static final String BIND_PARAM = "Lorg/springframework/web/bind/annotation/BindParam;";
+        public static final String BEAN = "Lorg/springframework/context/annotation/Bean;";
 
         public static final List<String> REQUEST_METHODS = Collections.unmodifiableList(Arrays.asList(
                 REQUEST_MAPPING, DELETE_MAPPING, GET_MAPPING,
-                PATCH_MAPPING, POST_MAPPING, PUT_MAPPING
+                PATCH_MAPPING, POST_MAPPING, PUT_MAPPING, BEAN
         ));
     }
 

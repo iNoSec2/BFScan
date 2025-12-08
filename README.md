@@ -10,6 +10,8 @@ Tool for initial processing of APK / XAPK / APKM / DEX / JAR / WAR applications.
 		* [Feign](https://github.com/OpenFeign/feign)
 	* Supported server libraries
 		* [Spring Web Annotations](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/bind/annotation/package-summary.html)
+		* [Spring SimpleUrlHandlerMapping](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/handler/SimpleUrlHandlerMapping.html)
+		* [Spring BeanNameUrlHandlerMapping](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/handler/BeanNameUrlHandlerMapping.html)
 		* [JAX-RS](https://docs.oracle.com/javaee/7/api/javax/ws/rs/package-summary.html), [Jakarta RESTful Web Services](https://jakarta.ee/learn/specification-guides/restful-web-services-explained/)
 		* [JAX](https://docs.oracle.com/javaee/7/api/javax/servlet/annotation/package-summary.html), [Jakarta Servlet Annotations](https://jakarta.ee/specifications/platform/9/apidocs/jakarta/servlet/annotation/package-summary)
 		* [Micronaut](https://docs.micronaut.io/latest/guide/#httpServer)

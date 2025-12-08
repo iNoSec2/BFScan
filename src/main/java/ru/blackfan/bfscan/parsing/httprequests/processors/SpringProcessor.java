@@ -112,6 +112,35 @@ public class SpringProcessor implements AnnotationProcessor {
                 processHeaders(request, annotationValues);
                 return true;
             }
+            case Constants.Spring.BEAN -> {
+                EncodedValue beanNameValue = AnnotationUtils.getValue(annotationValues, List.of("value", "name"));
+                if (beanNameValue != null) {
+                    Object valueObj = beanNameValue.getValue();
+                    List<String> beanPaths = new ArrayList();
+                    
+                    if (valueObj instanceof ArrayList) {
+                        ArrayList<EncodedValue> beanNameList = (ArrayList) valueObj;
+                        for (EncodedValue beanNameEncoded : beanNameList) {
+                            String beanName = Helpers.stringWrapper(beanNameEncoded);
+                            if (beanName != null && beanName.startsWith("/")) {
+                                beanPaths.add(beanName);
+                            }
+                        }
+                    } else {
+                        String beanName = Helpers.stringWrapper(beanNameValue);
+                        if (beanName != null && beanName.startsWith("/")) {
+                            beanPaths.add(beanName);
+                        }
+                    }
+                    
+                    if (!beanPaths.isEmpty()) {
+                        request.addAdditionalInformation("Spring BeanNameUrlHandlerMapping");
+                        request.setPaths(beanPaths);
+                        return true;
+                    }
+                }
+                return false;
+            }
             default -> {
                 return false;
             }
